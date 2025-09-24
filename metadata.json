@@ -1,0 +1,7 @@
+{
+  "name": "E-commerce Video Visionary",
+  "description": "An AI-powered tool for e-commerce owners to generate professional, data-driven marketing videos from product images and a simple idea prompt.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
