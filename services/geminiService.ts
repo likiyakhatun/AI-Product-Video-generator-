@@ -1,4 +1,5 @@
-import { GoogleGenAI, Type, VideosOperation, Part } from "@google/genai";
+// FIX: Removed import of 'VideosOperation' as it is not an exported member of '@google/genai'.
+import { GoogleGenAI, Type, Part } from "@google/genai";
 import { ProductDetails, Script } from '../types';
 
 if (!process.env.API_KEY) {
@@ -104,7 +105,8 @@ export const generateScript = async (files: File[], details: ProductDetails): Pr
 };
 
 
-export const generateVideo = async (file: File, script: Script, details: ProductDetails): Promise<VideosOperation> => {
+// FIX: Replaced non-existent 'VideosOperation' type with 'any' to resolve TypeScript error.
+export const generateVideo = async (file: File, script: Script, details: ProductDetails): Promise<any> => {
     const scriptText = `
         Scene 1: ${script.scene_1.visual} (Voiceover: ${script.scene_1.voiceover})
         Scene 2: ${script.scene_2.visual} (Voiceover: ${script.scene_2.voiceover})
@@ -133,6 +135,7 @@ export const generateVideo = async (file: File, script: Script, details: Product
     return operation;
 };
 
-export const checkVideoStatus = async (operation: VideosOperation): Promise<VideosOperation> => {
+// FIX: Replaced non-existent 'VideosOperation' type with 'any' to resolve TypeScript error.
+export const checkVideoStatus = async (operation: any): Promise<any> => {
     return ai.operations.getVideosOperation({ operation: operation });
 }

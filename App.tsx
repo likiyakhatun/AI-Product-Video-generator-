@@ -1,8 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { VideosOperation } from "@google/genai";
 import { VideoStyle, ProductDetails, Script } from './types';
 import * as geminiService from './services/geminiService';
-import { UploadIcon, SparklesIcon, DownloadIcon, LightbulbIcon } from './components/icons';
+import { UploadIcon, SparklesIcon, DownloadIcon, LightbulbIcon, GoogleIcon } from './components/icons';
 
 // --- Helper Functions & Constants ---
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -94,11 +93,25 @@ const VideoPreview: React.FC<{ src: string; onRestart: () => void }> = ({ src, o
     </div>
 );
 
+const LoginScreen: React.FC<{ onLogin: () => void }> = ({ onLogin }) => (
+    <div className="flex flex-col items-center justify-center text-center p-8">
+        <h2 className="text-3xl font-bold text-white">Sign In to Continue</h2>
+        <p className="mt-2 text-slate-400 max-w-sm">You've used your free trial video. Sign in to unlock more features and continue creating.</p>
+        <button 
+            onClick={onLogin} 
+            className="mt-8 w-full max-w-xs flex items-center justify-center gap-3 bg-white hover:bg-slate-200 text-slate-800 font-semibold py-3 px-4 rounded-lg transition-transform duration-200 hover:scale-105"
+        >
+            <GoogleIcon />
+            Sign In with Google
+        </button>
+    </div>
+);
+
 
 export default function App() {
+    // Step state: 1:Input, 2:Suggest, 3:Loading, 4:Preview, 5:Login
     const [step, setStep] = useState(1);
     const [productImages, setProductImages] = useState<File[]>([]);
-    const [logoFile, setLogoFile] = useState<File | null>(null);
     const [productName, setProductName] = useState("");
     const [videoIdea, setVideoIdea] = useState("");
     const [suggestedAdTypes, setSuggestedAdTypes] = useState<string[]>([]);
@@ -108,6 +121,10 @@ export default function App() {
     const [loadingMessage, setLoadingMessage] = useState("");
     const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+
+    // Auth & Usage State
+    const [videosGenerated, setVideosGenerated] = useState(0);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
 
     const handleAnalyze = async () => {
         if (productImages.length === 0 || !productName) {
@@ -147,7 +164,8 @@ export default function App() {
             const script: Script = await geminiService.generateScript(productImages, details);
             
             setLoadingMessage(GENERATION_MESSAGES[1]);
-            let operation: VideosOperation = await geminiService.generateVideo(productImages[0], script, details);
+            // FIX: Replaced non-existent 'VideosOperation' type with 'any' to resolve TypeScript error.
+            let operation: any = await geminiService.generateVideo(productImages[0], script, details);
 
             let msgIndex = 2;
             const interval = setInterval(() => {
@@ -169,6 +187,7 @@ export default function App() {
                 const blob = await response.blob();
                 const objectUrl = URL.createObjectURL(blob);
                 setGeneratedVideoUrl(objectUrl);
+                setVideosGenerated(prev => prev + 1);
                 setStep(4);
             } else {
                 throw new Error("Video generation failed to return a valid link.");
@@ -181,8 +200,7 @@ export default function App() {
         }
     };
     
-    const handleRestart = () => {
-        setStep(1);
+    const resetForNewVideo = () => {
         setProductImages([]);
         setProductName("");
         setVideoIdea("");
@@ -190,7 +208,21 @@ export default function App() {
         setSelectedAdType(null);
         setGeneratedVideoUrl(null);
         setError(null);
+        setStep(1);
+    };
+
+    const handleRestart = () => {
+        if (videosGenerated >= 1 && !isAuthenticated) {
+            setStep(5);
+        } else {
+            resetForNewVideo();
+        }
     }
+    
+    const handleLogin = () => {
+        setIsAuthenticated(true);
+        resetForNewVideo();
+    };
 
     return (
         <div className="min-h-screen bg-slate-900 text-white p-4 sm:p-6 lg:p-8 font-sans">
@@ -229,9 +261,11 @@ export default function App() {
                          </div>
                     )}
 
-                    {(step === 3) && <LoadingScreen message={loadingMessage} />}
+                    {step === 3 && <LoadingScreen message={loadingMessage} />}
                     
                     {step === 4 && generatedVideoUrl && <VideoPreview src={generatedVideoUrl} onRestart={handleRestart}/>}
+
+                    {step === 5 && <LoginScreen onLogin={handleLogin} />}
 
                     {error && <p className="text-red-400 text-sm text-center mt-4">{error}</p>}
                 </main>
